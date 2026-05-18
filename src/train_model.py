@@ -1,0 +1,1 @@
+print("Cloud anomaly detection container is working.")
