@@ -1,264 +1,118 @@
-# Cloud Anomaly Detection System
+# Machine Learning Anomaly Detection in Cloud Telemetry
 
-A Dockerised machine learning-based anomaly detection system for simulated cloud telemetry using behavioural aggregation, FastAPI, and Random Forest classification.
+A reproducible research and deployment prototype for detecting contextual anomalies in synthetic service telemetry. The project compares isolated event observations with behavioural service-window aggregation, then exposes the validated Random Forest pipeline through an incremental inference API and interactive dashboard.
 
----
+> This is an accelerated local research prototype built with synthetic telemetry. It is not a production cloud-monitoring platform and its results do not establish real-world generalisability.
 
-# Overview
+## What the project demonstrates
 
-Modern cloud environments generate large volumes of operational telemetry, making manual monitoring increasingly difficult. This project demonstrates a practical machine learning pipeline for detecting anomalous cloud-service behaviour using simulated real-time operational metrics.
+- Six-service synthetic telemetry with overlapping normal behaviour and service-local incidents.
+- Event-level and 15-, 30-, and 60-second behavioural-window representations.
+- Random Forest and Isolation Forest under chronological 60/20/20 splits.
+- Validation-only threshold selection and evaluation across five random seeds.
+- Precision, recall, anomaly F1, false-positive rate, PR-AUC, incident recall, and detection delay.
+- A near-real-time incremental inference path that consumes raw events and reuses the offline feature calculation.
+- FastAPI, Streamlit, Docker, and automated regression tests.
 
-The system combines:
+## Key research result
 
-* behavioural time-window aggregation
-* machine learning-based anomaly detection
-* probabilistic anomaly scoring
-* Docker containerisation
-* FastAPI inference services
-* simulated live cloud telemetry streaming
+Across the five evaluated seeds, behavioural aggregation improved mean anomaly F1 for both model families relative to individual-event inputs. Random Forest mean F1 increased from **0.588** at event level to **0.939**, **0.910**, and **0.950** for 15-, 30-, and 60-second windows. The best mean F1 therefore came with a longer approximate detection delay: **62.4 seconds** at 60 seconds versus **19.2 seconds** at 15 seconds. These values describe the implemented synthetic environment, not production infrastructure.
 
-The project was originally developed as part of an MSc research project focused on anomaly detection within distributed cloud environments.
+![Event and window F1 comparison](results/figures/event_vs_window_f1.png)
 
----
-
-# Features
-
-## Machine Learning
-
-* Window-based behavioural anomaly detection
-* Random Forest classification model
-* Probabilistic anomaly scoring
-* Configurable anomaly thresholds
-* Realistic cloud-style telemetry simulation
-
-## Cloud / DevOps / Deployment
-
-* Dockerised API deployment
-* FastAPI REST inference service
-* Live telemetry simulator
-* Reproducible containerised environment
-* Real-time anomaly prediction workflow
-
-## Operational Telemetry
-
-The system models realistic cloud operational behaviour including:
-
-* response latency
-* CPU utilisation
-* memory utilisation
-* service-level behaviour
-* warning/error frequencies
-* operational degradation patterns
-
----
-
-# System Architecture
+## Architecture
 
 ```text
-Live Cloud Telemetry Simulation
-                ↓
-Behavioural Time-Window Aggregation
-                ↓
-Random Forest Anomaly Detection Model
-                ↓
-FastAPI Inference Service
-                ↓
-Probabilistic Risk Scoring
-                ↓
-Real-Time Anomaly Alerts
+Raw synthetic telemetry
+        │
+        ▼
+Per-service fixed-window buffers
+        │
+        ▼
+Shared behavioural feature extraction
+        │
+        ▼
+Persisted preprocessing + Random Forest
+        │
+        ▼
+Validation-selected anomaly threshold
+        │
+        ├── FastAPI response
+        └── Streamlit dashboard
 ```
 
----
+Ground-truth label, incident ID, and anomaly type are retained only for experimental evaluation. They are excluded from `MODEL_FEATURES` and from the API input schema.
 
-# Project Structure
+## Quick start
 
-```text
-cloud-anomaly-detection/
-│
-├── src/
-│   ├── api.py
-│   ├── predict.py
-│   ├── live_simulator.py
-│   └── window_based_detection.py
-│
-├── models/
-│   └── window_rf_model.pkl
-│
-├── data/
-│
-├── outputs/
-│
-├── Dockerfile
-├── requirements.txt
-├── README.md
-└── .gitignore
-```
-
----
-
-# Technologies Used
-
-* Python
-* Scikit-learn
-* Pandas
-* NumPy
-* FastAPI
-* Docker
-* Uvicorn
-* Joblib
-
----
-
-# Machine Learning Pipeline
-
-The anomaly detection pipeline follows these stages:
-
-1. Simulated cloud telemetry generation
-2. Behavioural time-window aggregation
-3. Operational feature engineering
-4. Random Forest model training
-5. Probabilistic anomaly scoring
-6. Threshold-based anomaly classification
-7. Real-time inference through FastAPI
-
----
-
-# Operational Features
-
-The final model uses behavioural operational features including:
-
-* average response time
-* maximum response time
-* average CPU usage
-* maximum CPU usage
-* average memory usage
-* maximum memory usage
-* error-rate frequency
-* warning-rate frequency
-* error log ratio
-* operational log volume
-* service-level context
-
----
-
-# Example API Input
-
-```json
-{
-  "service": "payment-service",
-  "avg_response_time": 950,
-  "max_response_time": 1400,
-  "avg_cpu_usage": 90,
-  "max_cpu_usage": 99,
-  "avg_memory_usage": 92,
-  "max_memory_usage": 98,
-  "error_rate": 0.45,
-  "warn_rate": 0.55,
-  "error_log_rate": 0.35,
-  "log_count": 45
-}
-```
-
----
-
-# Example API Output
-
-```json
-{
-  "prediction": "ANOMALOUS",
-  "normal_probability": 0.4793,
-  "anomaly_probability": 0.5207,
-  "threshold": 0.4
-}
-```
-
----
-
-# Docker Setup
-
-## Build the Docker Image
+Python 3.12 is recommended.
 
 ```bash
-docker build -t cloud-anomaly-detector-api .
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m pytest -q
 ```
 
----
-
-## Run the API Container
+The repository includes the audited 30-second Random Forest artifact used by the demo. To reproduce training from the generator instead:
 
 ```bash
-docker run -p 8000:8000 -v ${PWD}/models:/app/models cloud-anomaly-detector-api
+.venv\Scripts\python -m training.train_window_model
 ```
 
----
-
-# FastAPI Documentation
-
-Once running:
-
-```text
-http://localhost:8000/docs
-```
-
-The Swagger UI allows interactive testing of anomaly predictions.
-
----
-
-# Live Telemetry Simulation
-
-Run the simulator locally:
+### Dashboard
 
 ```bash
-python src/live_simulator.py
+.venv\Scripts\streamlit run dashboard.py
 ```
 
-This continuously sends simulated cloud-service telemetry to the Dockerised API for real-time anomaly scoring.
+Open `http://localhost:8501`, choose a seed and duration, and run the accelerated replay.
 
----
+### API
 
-# Example Real-Time Output
+```bash
+.venv\Scripts\uvicorn app.api:app --reload
+```
+
+Open `http://localhost:8000/docs`. In another terminal, replay raw telemetry:
+
+```bash
+.venv\Scripts\python -m scripts.live_simulator --duration-seconds 300
+```
+
+The `POST /events` endpoint may return an empty list because a decision is emitted only when a behavioural window has closed. `POST /flush` is provided for finite demonstrations.
+
+### Docker
+
+```bash
+docker compose up --build api
+```
+
+To start both services:
+
+```bash
+docker compose --profile dashboard up --build
+```
+
+## Repository map
 
 ```text
-Service: database-service
-Expected pattern: ANOMALY-LIKE
-API prediction: ANOMALOUS
-Anomaly probability: 0.5207
-Threshold: 0.4
+app/                 FastAPI ingestion and prediction interface
+src/                 Generator, features, models, evaluation, and streaming core
+training/            Reproducible training entry point
+scripts/             HTTP replay and smoke-test utilities
+tests/               Data, leakage, incremental-consistency, and API tests
+models/              Persisted demonstration model artifact
+results/             Audited five-seed summaries and dissertation figures
+docs/                 Architecture, methodology, and limitations
+dashboard.py          Interactive accelerated replay dashboard
+Dockerfile            API container
+docker-compose.yml    Local API/dashboard orchestration
 ```
 
----
+## Evidence and limitations
 
-# Key Learning Outcomes
+The values in `results/` are copied from the final audited five-seed study rather than regenerated for presentation. See [methodology](docs/METHODOLOGY.md), [architecture](docs/ARCHITECTURE.md), and [limitations](docs/LIMITATIONS.md) for the experimental assumptions and boundaries.
 
-This project demonstrates practical experience with:
+## Background
 
-* machine learning engineering
-* cloud-style telemetry analysis
-* behavioural anomaly detection
-* Docker containerisation
-* FastAPI deployment
-* real-time inference systems
-* probabilistic operational monitoring
-* ML deployment workflows
-
----
-
-# Future Improvements
-
-Potential future extensions include:
-
-* Kafka-based streaming pipelines
-* Grafana monitoring dashboards
-* Prometheus integration
-* Kubernetes deployment
-* online learning models
-* cloud deployment on AWS/Azure/GCP
-* distributed anomaly correlation
-
----
-
-# Author
-
-Khaled Mubarak
-
-GitHub: [https://github.com/mubarakk-dev](https://github.com/mubarakk-dev)
+This portfolio repository extends the implementation produced for the MSc Applied Artificial Intelligence dissertation, *Machine Learning-Based Anomaly Detection in Cloud System Logs*. The exploratory HDFS notebook and full dissertation material remain in a separate academic archive; this repository focuses on reproducible code and demonstrable inference.

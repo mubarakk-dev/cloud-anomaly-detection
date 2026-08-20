@@ -1,0 +1,14 @@
+.git
+.venv
+.env
+.env.*
+credentials*.json
+secrets*.json
+*.pem
+*.key
+__pycache__
+*.pyc
+.pytest_cache
+outputs
+data
+notebooks
